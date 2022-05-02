@@ -9,7 +9,7 @@ class ExperimentRunner:
         self.evaluator = Evaluator()
 
     def run_single(self, article_sents: list, summary: str, summarizer: TextRank, num_sents: int = 2, with_print=False):
-        # number of sentences in summary makes a huge difference in the rouge evaluation --> example article idx=2 is better with 2-sents summary than with 4-sents summary
+        # number of sentences in summary makes a huge difference in the rouge evaluation --> best score with 2-sents summary
         generated_summary_sents = summarizer.summarize(
             article_sents, num_sents)
         generated_summary = " ".join(generated_summary_sents)
@@ -58,7 +58,7 @@ scores = experiment.run_single(
     example_article, example_summary, text_rank_summerizer, with_print=True)
 """
 example_test_data = dict()
-example_test_data["articles"] = german_test_data["articles"][:100]
-example_test_data["summaries"] = german_test_data["summaries"][:100]
+example_test_data["articles"] = german_test_data["articles"][:1000]
+example_test_data["summaries"] = german_test_data["summaries"][:1000]
 
 avg_test_scores = experiment.run(example_test_data, text_rank_summerizer)
