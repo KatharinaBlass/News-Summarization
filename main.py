@@ -30,7 +30,7 @@ class ExperimentRunner:
 
     def run(self, data: dict, summarizer: TextRank, num_sents: int = 2):
         articles = data["articles"]
-        gold_summaries = data["highlights"]
+        gold_summaries = data["summaries"]
         rouge_scores_list = list()
 
         for (idx, article) in enumerate(articles):
@@ -46,15 +46,19 @@ class ExperimentRunner:
 
 
 data_loader = DataLoader()
-example_article = data_loader.test_data["articles"][2]
-example_gold_summary = " ".join(data_loader.test_data["highlights"][2])
+german_test_data = data_loader.get_formatted_data()
+experiment = ExperimentRunner()
 text_rank_summerizer = TextRank()
 
-experiment = ExperimentRunner()
-# scores = experiment.run_single(example_article, example_gold_summary, text_rank_summerizer,with_print=True)
+"""
+example_article = german_test_data["articles"][0]
+example_summary = " ".join(german_test_data["summaries"][0])
 
+scores = experiment.run_single(
+    example_article, example_summary, text_rank_summerizer, with_print=True)
+"""
 example_test_data = dict()
-example_test_data["articles"] = data_loader.test_data["articles"][:10]
-example_test_data["highlights"] = data_loader.test_data["highlights"][:10]
+example_test_data["articles"] = german_test_data["articles"][:100]
+example_test_data["summaries"] = german_test_data["summaries"][:100]
 
 avg_test_scores = experiment.run(example_test_data, text_rank_summerizer)

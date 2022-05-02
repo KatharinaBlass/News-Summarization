@@ -1,20 +1,54 @@
 from nltk.corpus import stopwords
 from nltk.cluster.util import cosine_distance
+from nltk.tokenize import word_tokenize
+from nltk import pos_tag
+from nltk.stem import WordNetLemmatizer
+from nltk.stem import PorterStemmer
 import numpy as np
 import networkx as nx  # version 2.6 !
+import re
 
 
 class TextRank:
     def __init__(self):
+        self.language = "german"
+        self.stemmer = PorterStemmer()
+        self.lemmatizer = WordNetLemmatizer()
         self.summary_sents = None
 
-    def clean_sentences(self, sents: list):
-        # TODO: think about adding more news specific stopwords & maybe filter pos tags (nouns, adjectives and verbs are probably most relevant), maybe also stem or lemmatize words
-        #  TODO: Removing text between () and [], Parsing HTML tags
-        englisch_stopwords = stopwords.words("english")
-        lower_sents = [s.lower() for s in sents]
-        filtered_sents = [
-            s for s in lower_sents if s not in englisch_stopwords]
+    def filter_characters(self, sent: str):
+        # regex removes punctuation, []-brackets (but keeps its content), () (without keeping its content) and other special symbols related to speech
+        return re.sub("\[(.*)\]|(\(.*\))|([\.\,\!\?]+)|([\'\`\"\-\_\:\;\n]+)", "\g<1>", sent)
+
+    def filter_POS_tags(self, sent_tokens: list[str]):
+        tags = ["NN", "NNS", "NNP",  "JJ", "JJR", "JJS"]
+        return [word for (word, tag) in pos_tag(
+            sent_tokens) if tag in tags]
+
+    def remove_stopwords(self, sent):
+        # TODO: think about adding more news specific stopwords
+        sw = stopwords.words(self.language)
+        return [w for w in sent if w not in sw]
+
+    def stemming(self, sent):
+        return [self.stemmer.stem(w) for w in sent]
+
+    def lemmatizing(self, sent: str):
+        return [self.lemmatizer.lemmatize(w) for w in sent]
+
+    def clean_sentences(self, sents: list[str]):
+        filtered_sents = []
+        for sent in sents:
+            s = sent.lower()
+            s = self.filter_characters(s)
+            s = word_tokenize(s)
+            s = self.remove_stopwords(s)
+            #s = self.stemming(s)
+            s = self.lemmatizing(s)
+            #s = self.filter_POS_tags(s)
+            s = " ".join(s).strip()
+            filtered_sents.append(s)
+
         return filtered_sents
 
     def build_similarity_matrix(self, sents: list):
@@ -30,6 +64,11 @@ class TextRank:
 
     def sentence_similarity(self, sent1: str, sent2: str):
         # 1 means sentences are maximal similar, -1 means the opposite
+
+        # if one sent is empty, it will cause an error in the cosine distance calculation --> return -1 (means it is unsimilar --> sentence will not be chosen for summary)
+        if len(sent1) == 0 or len(sent2) == 0:
+            return -1
+
         lexicon = list(set(sent1 + sent2))
 
         vector1 = self.build_vector(lexicon, sent1)
@@ -55,9 +94,10 @@ class TextRank:
         similarity_graph = nx.from_numpy_array(
             similarity_matrix)
 
-        return nx.pagerank(similarity_graph)
+        return nx.pagerank_numpy(similarity_graph)
 
-    def summarize(self, sents: list, num_of_sent: int = 5):
+    def summarize(self, sents: list, num_of_sent: int = 5, language="german"):
+        self.language = language
         cleaned_sentences = self.clean_sentences(sents)
         sim_matrix = self.build_similarity_matrix(cleaned_sentences)
         ranks = self.apply_pagerank(sim_matrix)
