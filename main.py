@@ -1,14 +1,15 @@
-from typing import Dict
+from basic_summarizer import BasicSummarizer
 from data_loader import DataLoader
-from text_rank import TextRank
+from text_rank import TextRankSummarizer
 from evaluator import Evaluator
+from tfidf import tfidfSummarizer
 
 
 class ExperimentRunner:
     def __init__(self):
         self.evaluator = Evaluator()
 
-    def run_single(self, article_sents: list, summary: str, summarizer: TextRank, num_sents: int = 2, with_print=False):
+    def run_single(self, article_sents: list, summary: str, summarizer: BasicSummarizer, num_sents: int = 2, with_print=False):
         # number of sentences in summary makes a huge difference in the rouge evaluation --> best score with 2-sents summary
         generated_summary_sents = summarizer.summarize(
             article_sents, num_sents)
@@ -28,7 +29,7 @@ class ExperimentRunner:
 
         return rouge_scores
 
-    def run(self, data: dict, summarizer: TextRank, num_sents: int = 2):
+    def run(self, data: dict, summarizer: BasicSummarizer, num_sents: int = 2):
         articles = data["articles"]
         gold_summaries = data["summaries"]
         rouge_scores_list = list()
@@ -48,8 +49,8 @@ class ExperimentRunner:
 data_loader = DataLoader()
 german_test_data = data_loader.get_formatted_data()
 experiment = ExperimentRunner()
-text_rank_summerizer = TextRank()
-
+text_rank_summerizer = TextRankSummarizer()
+tfidf_summerizer = tfidfSummarizer()
 """
 example_article = german_test_data["articles"][0]
 example_summary = " ".join(german_test_data["summaries"][0])
@@ -61,4 +62,4 @@ example_test_data = dict()
 example_test_data["articles"] = german_test_data["articles"][:1000]
 example_test_data["summaries"] = german_test_data["summaries"][:1000]
 
-avg_test_scores = experiment.run(example_test_data, text_rank_summerizer)
+avg_test_scores = experiment.run(example_test_data, tfidf_summerizer)
