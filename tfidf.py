@@ -4,7 +4,7 @@ import math
 
 
 class tfidfSummarizer(BasicSummarizer):
-    def create_tf_idf_matrix(self, tokenized_sents, num_documents_per_word):
+    def create_tf_idf_matrix(self, tokenized_sents: list[list[str]], num_documents_per_word: dict):
         num_documents = len(tokenized_sents)
         tf_idf_matrix = list()
 
@@ -26,7 +26,7 @@ class tfidfSummarizer(BasicSummarizer):
             tf_idf_matrix.append(tf_idf_table)
         return tf_idf_matrix
 
-    def count_documents_per_word(self, tokenized_sents):
+    def count_documents_per_word(self, tokenized_sents: list[list[str]]):
         documents_per_word_dict = {}
 
         for sent in tokenized_sents:
@@ -38,7 +38,7 @@ class tfidfSummarizer(BasicSummarizer):
 
         return documents_per_word_dict
 
-    def score_sentences(self, tfidf_matrix):
+    def score_sentences(self, tfidf_matrix: list[dict[str, float]]):
         # sum up the TF frequency of every word in a sentence and devide this by total number of words in a sentence
         sentencesScores = list()
 
@@ -49,18 +49,15 @@ class tfidfSummarizer(BasicSummarizer):
             for score in tfidf_table.values():
                 total_score_per_sentence += score
 
-            sentencesScores.append(
-                total_score_per_sentence / count_words_in_sentence)
+            if count_words_in_sentence == 0:
+                sentencesScores.append(0)
+            else:
+                sentencesScores.append(
+                    total_score_per_sentence / count_words_in_sentence)
 
         return sentencesScores
 
-    def get_top_n_sentences(self, scores, sents: list, top_n: int):
-        ranked_sentences = sorted(
-            ((scores[i], s) for i, s in enumerate(sents)), reverse=True)
-
-        return [sent for (_, sent) in ranked_sentences[:top_n]]
-
-    def summarize(self, sents: list, num_of_sent: int = 5, language="german"):
+    def summarize(self, sents: list[str], num_of_sent: int = 5, language="german"):
         self.language = language
         cleaned_sentences = self.clean_sentences(sents)
         tokenized_sents = [word_tokenize(sent) for sent in cleaned_sentences]

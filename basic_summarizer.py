@@ -51,13 +51,19 @@ class BasicSummarizer:
             s = self.filter_characters(s)
             s = word_tokenize(s)
             s = self.remove_stopwords(s)
-            #s = self.stemming(s)
+            # s = self.stemming(s)
             s = self.lemmatizing(s)
-            #s = self.filter_POS_tags(s)
+            # s = self.filter_POS_tags(s)
             s = " ".join(s).strip()
             filtered_sents.append(s)
 
         return filtered_sents
+
+    def get_top_n_sentences(self, scores, sents: list, top_n: int):
+        ranked_sentences = sorted(
+            ((scores[i], s) for i, s in enumerate(sents)), reverse=True)
+
+        return [sent for (_, sent) in ranked_sentences[:top_n]]
 
     def summarize(self):
         raise NotImplementedError(

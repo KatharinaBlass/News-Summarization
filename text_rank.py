@@ -23,9 +23,9 @@ class TextRankSummarizer(BasicSummarizer):
         if len(sent1) == 0 or len(sent2) == 0:
             return -1
 
-        #lexicon = list(set(sent1 + sent2))
-        #vector1 = self.build_vector(lexicon, sent1)
-        #vector2 = self.build_vector(lexicon, sent2)
+        # lexicon = list(set(sent1 + sent2))
+        # vector1 = self.build_vector(lexicon, sent1)
+        # vector2 = self.build_vector(lexicon, sent2)
 
         # glove embeddings result in poor scores
         vector1 = self.build_glove_vector(sent1)
@@ -48,12 +48,6 @@ class TextRankSummarizer(BasicSummarizer):
         else:
             v = np.zeros((100,))
         return v
-
-    def get_top_n_sentences(self, ranks: dict[any, float], sents: list, top_n: int):
-        ranked_sentences = sorted(
-            ((ranks[i], s) for i, s in enumerate(sents)), reverse=True)
-
-        return [sent for (_, sent) in ranked_sentences[:top_n]]
 
     def apply_pagerank(self, similarity_matrix: np.ndarray):
         similarity_graph = nx.from_numpy_array(
