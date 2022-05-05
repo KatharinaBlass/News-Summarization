@@ -3,6 +3,7 @@ from data_loader import DataLoader
 from text_rank import TextRankSummarizer
 from evaluator import Evaluator
 from tfidf import tfidfSummarizer, tfidfScikitSummarizer
+from lead_n import LeadNSummarizer
 
 
 class ExperimentRunner:
@@ -52,19 +53,14 @@ experiment = ExperimentRunner()
 text_rank_summerizer = TextRankSummarizer()
 tfidf_summerizer = tfidfSummarizer()
 tfidf_scikit_summarizer = tfidfScikitSummarizer()
+lead_n_summarizer = LeadNSummarizer()
 
 """
 example_article = german_test_data["articles"][0]
 example_summary = " ".join(german_test_data["summaries"][0])
 
-print("##### tfidf")
 scores = experiment.run_single(
-    example_article, example_summary, tfidf_summerizer, with_print=True)
-
-print(" ")
-print("##### tfidf scikit")
-scores = experiment.run_single(
-    example_article, example_summary, tfidf_scikit_summarizer, with_print=True)
+    example_article, example_summary, lead_n_summarizer, with_print=True)
 
 """
 
@@ -72,11 +68,5 @@ example_test_data = dict()
 example_test_data["articles"] = german_test_data["articles"][:1000]
 example_test_data["summaries"] = german_test_data["summaries"][:1000]
 
-print("##### tfidf")
 avg_test_scores = experiment.run(
-    example_test_data, tfidf_summerizer)
-
-print(" ")
-print("##### tfidf scikit")
-avg_test_scores = experiment.run(
-    example_test_data, tfidf_scikit_summarizer)
+    example_test_data, lead_n_summarizer)
