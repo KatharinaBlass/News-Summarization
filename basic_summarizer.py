@@ -1,5 +1,5 @@
 from nltk.corpus import stopwords
-from nltk.tokenize import word_tokenize
+from nltk.tokenize import word_tokenize, RegexpTokenizer
 from nltk import pos_tag
 from nltk.stem import WordNetLemmatizer
 from nltk.stem import PorterStemmer
@@ -38,6 +38,10 @@ class BasicSummarizer:
         sw = stopwords.words(self.language)
         return [w for w in sent if w not in sw]
 
+    def remove_punctuation(self, sent):
+        punct = [".", ",", ";", "-", "!", "?"]
+        return [w for w in sent if w not in punct]
+
     def stemming(self, sent):
         return [self.stemmer.stem(w) for w in sent]
 
@@ -48,12 +52,12 @@ class BasicSummarizer:
         filtered_sents = []
         for sent in sents:
             s = sent.lower()
-            s = self.filter_characters(s)
+            #tokenizer = RegexpTokenizer(r'\w+')
+            #s = tokenizer.tokenize(s)
             s = word_tokenize(s)
+            s = self.remove_punctuation(s)
             s = self.remove_stopwords(s)
-            # s = self.stemming(s)
             s = self.lemmatizing(s)
-            # s = self.filter_POS_tags(s)
             s = " ".join(s).strip()
             filtered_sents.append(s)
 
