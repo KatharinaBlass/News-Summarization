@@ -10,6 +10,10 @@ class Evaluator:
     def rouge_score_single(self, reference_summary: str, produced_summary: str):
         return self.rouge_scorer.score(reference_summary, produced_summary)
 
+    def get_fmeasure_rouge1_score_single(self, reference_summary: str, produced_summary: str):
+        scores = self.rouge_scorer.score(reference_summary, produced_summary)
+        return scores["rouge1"].fmeasure
+
     def add_scores(self, score_dict: dict, score_to_add: scoring.Score):
         score_dict["precision"] += score_to_add.precision
         score_dict["recall"] += score_to_add.recall
