@@ -1,3 +1,4 @@
+from NB_classifier import NaiveBayesSummarizer
 from basic_summarizer import BasicSummarizer
 from data_loader import DataLoader
 from text_rank import TextRankSummarizer
@@ -12,10 +13,10 @@ class ExperimentRunner:
     def __init__(self):
         self.evaluator = Evaluator()
 
-    def run_single(self, article_sents: list, summary: str, summarizer: BasicSummarizer, num_sents: int = 2, with_print=False):
+    def run_single(self, article_sents: list, summary: str, headline: str, summarizer: BasicSummarizer, num_sents: int = 2, with_print=False):
         # number of sentences in summary makes a huge difference in the rouge evaluation --> best score with 2-sents summary
         generated_summary_sents = summarizer.summarize(
-            article_sents, num_sents)
+            article_sents, headline=headline, num_of_sent=num_sents)
         generated_summary = " ".join(generated_summary_sents)
         rouge_scores = self.evaluator.rouge_score_single(
             summary, generated_summary)
@@ -35,11 +36,12 @@ class ExperimentRunner:
     def run(self, data: dict, summarizer: BasicSummarizer, num_sents: int = 2):
         articles = data["articles"]
         gold_summaries = data["summaries"]
+        headlines = data["headlines"]
         rouge_scores_list = list()
 
         for (idx, article) in enumerate(articles):
             rouge_scores = self.run_single(
-                article, " ".join(gold_summaries[idx]), summarizer, num_sents)
+                article, " ".join(gold_summaries[idx]), " ".join(headlines[idx]), summarizer, num_sents)
             rouge_scores_list.append(rouge_scores)
 
         avg_rouge_scores = self.evaluator.calculate_avg_rouge_score(
@@ -91,8 +93,13 @@ class ExperimentRunner:
         return generated_summary_sents
 
 
+print("data peprocessing...")
+
 data_loader = DataLoader()
 german_test_data = data_loader.get_formatted_data()
+german_train_data = data_loader.get_formatted_data("train")
+german_validation_data = data_loader.get_formatted_data("validation")
+
 experiment = ExperimentRunner()
 text_rank_summerizer = TextRankSummarizer()
 tfidf_summerizer = tfidfSummarizer()
@@ -100,18 +107,31 @@ tfidf_scikit_summarizer = tfidfScikitSummarizer()
 lead_n_summarizer = LeadNSummarizer()
 
 
-example_article = german_test_data["articles"][0]
-example_summary = " ".join(german_test_data["summaries"][0])
+#example_article = german_test_data["articles"][0]
+#example_summary = " ".join(german_test_data["summaries"][0])
 
 example_test_data = dict()
 example_test_data["articles"] = german_test_data["articles"][:1000]
 example_test_data["summaries"] = german_test_data["summaries"][:1000]
+example_test_data["headlines"] = german_test_data["headlines"][:1000]
 
 # experiment.greedy_convert_labels(example_summary, example_article)
 
-labels = experiment.make_labels(
-    example_test_data["articles"], example_test_data["summaries"])
+train_labels = experiment.make_labels(
+    german_train_data["articles"], german_train_data["summaries"])
+validation_labels = experiment.make_labels(
+    german_validation_data["articles"][:100], german_validation_data["summaries"][:100])
 
+
+print("model training...")
+
+nb_summarizer = NaiveBayesSummarizer(
+    german_train_data["articles"], train_labels, german_train_data["headlines"], german_validation_data["articles"][:100], validation_labels, german_validation_data["headlines"][:100])
+
+print("summarizing...")
+
+avg_test_scores = experiment.run(
+    example_test_data, nb_summarizer)
 
 """
 rouge_scores_list = list()
@@ -131,16 +151,5 @@ print("avg scores:")
 experiment.evaluator.pretty_print_scores(avg_rouge_scores)
 """
 
-"""
-scores = experiment.run_single(
-    example_article, example_summary, lead_n_summarizer, with_print=True)
 
-
-
-example_test_data = dict()
-example_test_data["articles"] = german_test_data["articles"][:1000]
-example_test_data["summaries"] = german_test_data["summaries"][:1000]
-
-avg_test_scores = experiment.run(
-    example_test_data, lead_n_summarizer)
-"""
+#scores = experiment.run_single(example_article, example_summary, lead_n_summarizer, with_print=True)

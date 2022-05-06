@@ -15,7 +15,9 @@ class DataLoader():
             self.split_sentences(article["text"]) for article in data]
         summaries = [
             self.split_sentences(article["summary"]) for article in data]
+        headlines = [
+            self.split_sentences(article["title"]) for article in data]
 
         return {
-            "articles": articles, "summaries": summaries
+            "articles": articles, "summaries": summaries, "headlines": headlines
         }
