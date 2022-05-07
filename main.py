@@ -7,6 +7,8 @@ from tfidf import tfidfSummarizer, tfidfScikitSummarizer
 from lead_n import LeadNSummarizer
 from nltk import sent_tokenize
 import numpy
+import json
+import os.path
 
 
 class ExperimentRunner:
@@ -61,7 +63,7 @@ class ExperimentRunner:
             for (idx, sent) in enumerate(article_sents):
                 if sent in extractive_summary_sents:
                     label[idx] = 1
-            labels.append(label)
+            labels.append(label.tolist())
         return labels
 
     def greedy_convert_summary(self, target_summary: str, sents: list[str]):
@@ -116,17 +118,30 @@ example_test_data["summaries"] = german_test_data["summaries"][:1000]
 example_test_data["headlines"] = german_test_data["headlines"][:1000]
 
 # experiment.greedy_convert_labels(example_summary, example_article)
+""""""
+labels = dict()
+if os.path.exists('extractive_labels.json'):
+    with open('extractive_labels.json') as json_file:
+        labels = json.load(json_file)
 
-train_labels = experiment.make_labels(
-    german_train_data["articles"], german_train_data["summaries"])
-validation_labels = experiment.make_labels(
-    german_validation_data["articles"][:100], german_validation_data["summaries"][:100])
-
+else:
+    train_labels = experiment.make_labels(
+        german_train_data["articles"], german_train_data["summaries"])
+    validation_labels = experiment.make_labels(
+        german_validation_data["articles"], german_validation_data["summaries"])
+    labels = {
+        'train': train_labels,
+        'validation': validation_labels
+    }
+    json_string = json.dumps(labels)
+    with open('extractive_labels.json', 'w') as outfile:
+        outfile.write(json_string)
 
 print("model training...")
 
+
 nb_summarizer = NaiveBayesSummarizer(
-    german_train_data["articles"], train_labels, german_train_data["headlines"], german_validation_data["articles"][:100], validation_labels, german_validation_data["headlines"][:100])
+    german_train_data["articles"][:10000], labels["train"][:10000], german_train_data["headlines"][:10000], german_validation_data["articles"][:10], labels["validation"][:10], german_validation_data["headlines"][:10])
 
 print("summarizing...")
 

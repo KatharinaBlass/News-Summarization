@@ -40,6 +40,12 @@ class BasicSummarizer:
         vector1 = self.build_glove_vector(sent1)
         vector2 = self.build_glove_vector(sent2)
 
+        vector1_all_zeros = not np.any(vector1)
+        vector2_all_zeros = not np.any(vector2)
+
+        if vector1_all_zeros or vector2_all_zeros:
+            return -1
+
         return 1 - cosine_distance(vector1, vector2)
 
     def build_glove_vector(self, sent: str):
@@ -77,17 +83,21 @@ class BasicSummarizer:
     def clean_sentences(self, sents: list[str]):
         filtered_sents = []
         for sent in sents:
-            s = sent.lower()
-            #tokenizer = RegexpTokenizer(r'\w+')
-            #s = tokenizer.tokenize(s)
-            s = word_tokenize(s)
-            s = self.remove_punctuation(s)
-            s = self.remove_stopwords(s)
-            s = self.lemmatizing(s)
-            s = " ".join(s).strip()
-            filtered_sents.append(s)
+            cleaned_sent = self.clean_sent(sent)
+            filtered_sents.append(cleaned_sent)
 
         return filtered_sents
+
+    def clean_sent(self, sent: str):
+        s = sent.lower()
+        #tokenizer = RegexpTokenizer(r'\w+')
+        #s = tokenizer.tokenize(s)
+        s = word_tokenize(s)
+        s = self.remove_punctuation(s)
+        s = self.remove_stopwords(s)
+        s = self.lemmatizing(s)
+        s = " ".join(s).strip()
+        return s
 
     def get_top_n_sentences(self, scores, sents: list, top_n: int):
         ranked_sentences = sorted(
