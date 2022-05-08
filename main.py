@@ -6,54 +6,102 @@ from evaluator import Evaluator
 from tfidf import tfidfSummarizer, tfidfScikitSummarizer
 from lead_n import LeadNSummarizer
 from word_probability import SumBasicSummarizer
-from nltk import sent_tokenize
 import numpy
 import json
 import os.path
+import sys
+import getopt
+
+
+summarizer_dict = {
+    "leadn": LeadNSummarizer,
+    "tfidf": tfidfScikitSummarizer,
+    "textrank": TextRankSummarizer,
+    "sumbasic": SumBasicSummarizer,
+    "nb": NaiveBayesSummarizer
+}
+
+language_dict = {
+    "de": 'german',
+    "fr": 'french',
+    "es": 'spanish',
+    "ru": 'russian',
+    "tu": 'turkish'
+}
+
+LABEL_FILE_NAME = 'extractive_labels.json'
 
 
 class ExperimentRunner:
-    def __init__(self):
-        self.evaluator = Evaluator()
+    def __init__(self, language, algorithm):
+        self.language = language
+        self.algorithm = algorithm
+        self.setup()
 
-    def run_single(self, article_sents: list, summary: str, headline: str, summarizer: BasicSummarizer, num_sents: int = 2, with_print=False):
-        # number of sentences in summary makes a huge difference in the rouge evaluation --> best score with 2-sents summary
+    def setup(self):
+        print("preparing data...")
+        self.evaluator = Evaluator()
+        self.data_loader = DataLoader(self.language)
+        summarizer_class = summarizer_dict[self.algorithm]
+        self.test_data = self.data_loader.get_formatted_data("test")
+        if algorithm == "nb":
+            self.labels = dict()
+            self.train_data = self.data_loader.get_formatted_data("train")
+            self.validation_data = self.data_loader.get_formatted_data(
+                "validation")
+            self.load_labels()
+            print("model training...")
+            self.summarizer = summarizer_class(
+                self.train_data["articles"], self.labels["train"], self.train_data["headlines"], self.validation_data["articles"], self.labels["validation"], self.validation_data["headlines"])
+        else:
+            self.summarizer = summarizer_class()
+
+    def load_labels(self):
+        if os.path.exists(self.language+LABEL_FILE_NAME):
+            with open(self.language+LABEL_FILE_NAME) as json_file:
+                self.labels = json.load(json_file)
+
+        else:
+            train_labels = self.make_extractive_labels(
+                self.train_data["articles"], self.train_data["summaries"])
+            validation_labels = self.make_extractive_labels(
+                self.validation_data["articles"], self.validation_data["summaries"])
+            self.labels = {
+                'train': train_labels,
+                'validation': validation_labels
+            }
+            json_string = json.dumps(self.labels)
+            with open(self.language+LABEL_FILE_NAME, 'w') as outfile:
+                outfile.write(json_string)
+
+    def summarize_article(self, article_sents: list, summary: str, headline: str, summarizer: BasicSummarizer, num_sents: int = 2, with_print=False):
         generated_summary_sents = summarizer.summarize(
-            article_sents, headline=headline, num_of_sent=num_sents)
+            article_sents, headline=headline, num_of_sent=num_sents, language=language_dict[self.language])
         generated_summary = " ".join(generated_summary_sents)
         rouge_scores = self.evaluator.rouge_score_single(
             summary, generated_summary)
-
-        if with_print:
-            # print("original article: ", " ".join(article_sents))
-            # print(" ")
-            print("original summary: ", summary)
-            print(" ")
-            print("generated summary: ", generated_summary)
-            print(" ")
-            print("rouge scores: ")
-            self.evaluator.pretty_print_scores(rouge_scores)
-
         return rouge_scores
 
-    def run(self, data: dict, summarizer: BasicSummarizer, num_sents: int = 2):
-        articles = data["articles"]
-        gold_summaries = data["summaries"]
-        headlines = data["headlines"]
+    def run(self, num_sents: int = 2):
+        print("summarizing...")
+        articles = self.test_data["articles"]
+        gold_summaries = self.test_data["summaries"]
+        headlines = self.test_data["headlines"]
         rouge_scores_list = list()
 
         for (idx, article) in enumerate(articles):
-            rouge_scores = self.run_single(
-                article, " ".join(gold_summaries[idx]), " ".join(headlines[idx]), summarizer, num_sents)
+            rouge_scores = self.summarize_article(
+                article, " ".join(gold_summaries[idx]), " ".join(headlines[idx]), self.summarizer, num_sents)
             rouge_scores_list.append(rouge_scores)
 
         avg_rouge_scores = self.evaluator.calculate_avg_rouge_score(
             rouge_scores_list)
-        print("avg scores:")
+        print("rouge score - language", language_dict[self.language],
+              "& algorithm", self.algorithm)
         self.evaluator.pretty_print_scores(avg_rouge_scores)
         return avg_rouge_scores
 
-    def make_labels(self, articles: list[list[str]], abstractive_summaries: list[list[str]]):
+    def make_extractive_labels(self, articles: list[list[str]], abstractive_summaries: list[list[str]]):
         labels = list()
         for (idx, abstractive_summary) in enumerate(abstractive_summaries):
             abstractive_summary = " ".join(abstractive_summary)
@@ -91,91 +139,41 @@ class ExperimentRunner:
                 generated_summary_sents.pop()
             else:
                 summary_score = current_summary_score
-
-        # print(generated_summary_sents, summary_score)
         return generated_summary_sents
 
 
-print("data peprocessing...")
-
-data_loader = DataLoader()
-german_test_data = data_loader.get_formatted_data()
-#german_train_data = data_loader.get_formatted_data("train")
-#german_validation_data = data_loader.get_formatted_data("validation")
-
-experiment = ExperimentRunner()
-text_rank_summerizer = TextRankSummarizer()
-tfidf_summerizer = tfidfSummarizer()
-tfidf_scikit_summarizer = tfidfScikitSummarizer()
-lead_n_summarizer = LeadNSummarizer()
-sum_basic_summarizer = SumBasicSummarizer()
+def main(language, algorithm):
+    print(language, algorithm)
+    experiment = ExperimentRunner(language, algorithm)
+    experiment.run()
 
 
-# example_article = german_test_data["articles"][0]
-# example_summary = " ".join(german_test_data["summaries"][0])
+if __name__ == "__main__":
+    try:
+        opts, args = getopt.getopt(sys.argv[1:], "l:a:")
+    except getopt.GetoptError:
+        print('main.py -l <language> -a <algorithm>')
+        sys.exit(2)
 
-example_test_data = dict()
-example_test_data["articles"] = german_test_data["articles"][:1000]
-example_test_data["summaries"] = german_test_data["summaries"][:1000]
-example_test_data["headlines"] = german_test_data["headlines"][:1000]
+    supported_languages = list(language_dict.keys())
+    supported_algorithms = list(summarizer_dict.keys())
+    language = supported_languages[0]
+    algorithm = supported_algorithms[0]
 
+    for opt, arg in opts:
+        if opt == '-l':
+            if arg in supported_languages:
+                language = arg
+            else:
+                print('language not supported - supported languages are ',
+                      supported_languages)
+                sys.exit(2)
+        elif opt == '-a':
+            if arg in supported_algorithms:
+                algorithm = arg
+            else:
+                print('algorithm not supported - supported algorithms are ',
+                      supported_algorithms)
+                sys.exit(2)
 
-# experiment.greedy_convert_labels(example_summary, example_article)
-"""
-labels = dict()
-if os.path.exists('extractive_labels.json'):
-    with open('extractive_labels.json') as json_file:
-        labels = json.load(json_file)
-
-else:
-    train_labels = experiment.make_labels(
-        german_train_data["articles"], german_train_data["summaries"])
-    validation_labels = experiment.make_labels(
-        german_validation_data["articles"], german_validation_data["summaries"])
-    labels = {
-        'train': train_labels,
-        'validation': validation_labels
-    }
-    json_string = json.dumps(labels)
-    with open('extractive_labels.json', 'w') as outfile:
-        outfile.write(json_string)
-
-print("model training...")
-
-
-nb_summarizer = NaiveBayesSummarizer(
-    german_train_data["articles"][:10000], labels["train"][:10000], german_train_data["headlines"][:10000], german_validation_data["articles"][:10], labels["validation"][:10], german_validation_data["headlines"][:10])
-
-print("summarizing...")
-
-avg_test_scores = experiment.run(
-    example_test_data, nb_summarizer)
-
-"""
-"""
-rouge_scores_list = list()
-for (idx, abstractive_summary) in enumerate(example_test_data["summaries"]):
-    abstractive_summary = " ".join(abstractive_summary)
-    article = example_test_data["articles"][idx]
-    extractive_summary = " ".join(experiment.greedy_convert_labels(
-        abstractive_summary, article))
-    rouge_scores = experiment.evaluator.rouge_score_single(
-        abstractive_summary, extractive_summary)
-
-    rouge_scores_list.append(rouge_scores)
-
-avg_rouge_scores = experiment.evaluator.calculate_avg_rouge_score(
-    rouge_scores_list)
-print("avg scores:")
-experiment.evaluator.pretty_print_scores(avg_rouge_scores)
-"""
-
-
-# scores = experiment.run_single(example_article, example_summary, lead_n_summarizer, with_print=True)
-#experiment = ExperimentRunner()
-#sum_basic_summarizer = SumBasicSummarizer()
-
-# tfidf_scikit_summarizer = tfidfScikitSummarizer()
-
-print("##### sum basic")
-avg_test_scores = experiment.run(example_test_data, sum_basic_summarizer)
+    main(language=language, algorithm=algorithm)

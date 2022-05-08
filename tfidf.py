@@ -59,7 +59,7 @@ class tfidfSummarizer(BasicSummarizer):
             """
         return sentencesScores
 
-    def summarize(self, sents: list[str], num_of_sent: int = 5, language="german"):
+    def summarize(self, sents: list[str], headline: str = None, num_of_sent: int = 5, language="german"):
         self.language = language
         cleaned_sentences = self.clean_sentences(sents)
         tokenized_sents = [word_tokenize(sent) for sent in cleaned_sentences]
@@ -106,7 +106,7 @@ class tfidfScikitSummarizer(BasicSummarizer):
 
         return sentencesScores
 
-    def summarize(self, sents: list[str], num_of_sent: int = 5, language="german"):
+    def summarize(self, sents: list[str], headline: str = None, num_of_sent: int = 5, language="german"):
         self.language = language
         cleaned_sentences = self.clean_sentences(sents)
         tf_idf_matrix = self.create_tf_idf_matrix(cleaned_sentences, language)

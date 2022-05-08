@@ -30,22 +30,18 @@ class TextRankSummarizer(BasicSummarizer):
 
         return nx.pagerank_numpy(similarity_graph)
 
-    def clean_sentences(self, sents: list[str]):
-        filtered_sents = []
-        for sent in sents:
-            s = sent.lower()
-            s = self.filter_characters(s)
-            s = word_tokenize(s)
-            s = self.remove_stopwords(s)
-            # s = self.stemming(s)
-            s = self.lemmatizing(s)
-            # s = self.filter_POS_tags(s)
-            s = " ".join(s).strip()
-            filtered_sents.append(s)
+    def clean_sent(self, sent: str):
+        s = sent.lower()
+        s = self.filter_characters(s)
+        s = word_tokenize(s)
+        s = self.remove_stopwords(s)
+        # s = self.stemming(s)
+        s = self.lemmatizing(s)
+        # s = self.filter_POS_tags(s)
+        s = " ".join(s).strip()
+        return s
 
-        return filtered_sents
-
-    def summarize(self, sents: list, num_of_sent: int = 5, language="german"):
+    def summarize(self, sents: list, headline: str = None, num_of_sent: int = 5, language="german"):
         self.language = language
         cleaned_sentences = self.clean_sentences(sents)
         sim_matrix = self.build_similarity_matrix(cleaned_sentences)

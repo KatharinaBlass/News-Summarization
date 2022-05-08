@@ -91,7 +91,7 @@ class NaiveBayesSummarizer(BasicSummarizer):
 
     def test(self, data):
         # return accuracy for the model on input data
-        print(nltk.classify.accuracy(self.model, data))
+        print("accuracy:", nltk.classify.accuracy(self.model, data))
 
     def train_and_evaluate(self, train, test):
         self.train(train)
@@ -107,7 +107,6 @@ class NaiveBayesSummarizer(BasicSummarizer):
         return {
             "length": len(sent_words),
             "position": position,
-            # "headline_similarity": self.sentence_similarity(sent, headline),
             "headline_common_words_count": self.count_common_words(sent_words, headline_words),
             "topic_words_count": self.count_common_words(sent_words, topic_words),
             "contains_indicator_words": self.contains_indicator_words(sent),
@@ -137,7 +136,6 @@ class NaiveBayesSummarizer(BasicSummarizer):
         return len(set(words1).intersection(words2))
 
     def build_data(self, data):
-        # populate the features with the above function
         return [(self.extract_features(sent, pos, headline, topic_words), label)
                 for (sent, pos, headline, label, topic_words) in data]
 

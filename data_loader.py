@@ -19,5 +19,5 @@ class DataLoader():
             self.split_sentences(article["title"]) for article in data]
 
         return {
-            "articles": articles, "summaries": summaries, "headlines": headlines
+            "articles": articles[:10], "summaries": summaries[:10], "headlines": headlines[:10]
         }

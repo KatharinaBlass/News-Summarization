@@ -13,7 +13,9 @@ class BasicSummarizer:
         self.language = "german"
         self.stemmer = PorterStemmer()
         self.lemmatizer = WordNetLemmatizer()
+        # TODO: replace by spacy lemmatizer with support for multiple languages (except turkish), right now with nltk stemming and lemmatizing only english is supported
         self.word_embeddings = {}
+        # TODO: use glove embeddings for all languages
         self.load_glove_word_embeddings()
 
     def load_glove_word_embeddings(self):
@@ -66,7 +68,6 @@ class BasicSummarizer:
             sent_tokens) if tag in tags]
 
     def remove_stopwords(self, sent):
-        # TODO: think about adding more news specific stopwords
         sw = stopwords.words(self.language)
         return [w for w in sent if w not in sw]
 
