@@ -100,7 +100,7 @@ class tfidfScikitSummarizer(BasicSummarizer):
                 sentencesScores.append(sum_weights)
             else:
                 sentencesScores.append(
-                    sum_weights)
+                    sum_weights/num_words_in_sent)
             """
             sentencesScores.append(sum_weights)
 

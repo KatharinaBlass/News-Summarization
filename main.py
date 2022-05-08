@@ -5,6 +5,7 @@ from text_rank import TextRankSummarizer
 from evaluator import Evaluator
 from tfidf import tfidfSummarizer, tfidfScikitSummarizer
 from lead_n import LeadNSummarizer
+from word_probability import SumBasicSummarizer
 from nltk import sent_tokenize
 import numpy
 import json
@@ -99,26 +100,28 @@ print("data peprocessing...")
 
 data_loader = DataLoader()
 german_test_data = data_loader.get_formatted_data()
-german_train_data = data_loader.get_formatted_data("train")
-german_validation_data = data_loader.get_formatted_data("validation")
+#german_train_data = data_loader.get_formatted_data("train")
+#german_validation_data = data_loader.get_formatted_data("validation")
 
 experiment = ExperimentRunner()
 text_rank_summerizer = TextRankSummarizer()
 tfidf_summerizer = tfidfSummarizer()
 tfidf_scikit_summarizer = tfidfScikitSummarizer()
 lead_n_summarizer = LeadNSummarizer()
+sum_basic_summarizer = SumBasicSummarizer()
 
 
-#example_article = german_test_data["articles"][0]
-#example_summary = " ".join(german_test_data["summaries"][0])
+# example_article = german_test_data["articles"][0]
+# example_summary = " ".join(german_test_data["summaries"][0])
 
 example_test_data = dict()
 example_test_data["articles"] = german_test_data["articles"][:1000]
 example_test_data["summaries"] = german_test_data["summaries"][:1000]
 example_test_data["headlines"] = german_test_data["headlines"][:1000]
 
+
 # experiment.greedy_convert_labels(example_summary, example_article)
-""""""
+"""
 labels = dict()
 if os.path.exists('extractive_labels.json'):
     with open('extractive_labels.json') as json_file:
@@ -149,6 +152,7 @@ avg_test_scores = experiment.run(
     example_test_data, nb_summarizer)
 
 """
+"""
 rouge_scores_list = list()
 for (idx, abstractive_summary) in enumerate(example_test_data["summaries"]):
     abstractive_summary = " ".join(abstractive_summary)
@@ -167,4 +171,11 @@ experiment.evaluator.pretty_print_scores(avg_rouge_scores)
 """
 
 
-#scores = experiment.run_single(example_article, example_summary, lead_n_summarizer, with_print=True)
+# scores = experiment.run_single(example_article, example_summary, lead_n_summarizer, with_print=True)
+#experiment = ExperimentRunner()
+#sum_basic_summarizer = SumBasicSummarizer()
+
+# tfidf_scikit_summarizer = tfidfScikitSummarizer()
+
+print("##### sum basic")
+avg_test_scores = experiment.run(example_test_data, sum_basic_summarizer)
