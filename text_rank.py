@@ -2,7 +2,6 @@ import numpy as np
 import networkx as nx  # version 2.6 !
 from basic_summarizer import BasicSummarizer
 from nltk.cluster.util import cosine_distance
-from nltk import RegexpTokenizer
 
 
 class TextRankSummarizer(BasicSummarizer):
@@ -48,18 +47,6 @@ class TextRankSummarizer(BasicSummarizer):
             similarity_matrix)
 
         return nx.pagerank_numpy(similarity_graph)
-
-    def clean_sent(self, sent: str):
-        s = sent.lower()
-        tokenizer = RegexpTokenizer(r'\w+')
-        s = tokenizer.tokenize(s)
-        #s = self.filter_characters(s)
-        #s = self.helper.tokenize_words(s)
-        s = self.remove_stopwords(s)
-        # s = self.stemming(s)
-        # s = self.lemmatizing(s)
-        s = " ".join(s).strip()
-        return s
 
     def summarize(self, sents: list, headline: str = None, num_of_sent: int = 5):
         cleaned_sentences = self.clean_sentences(sents)

@@ -2,7 +2,6 @@ from basic_summarizer import BasicSummarizer
 import numpy
 import nltk
 from nltk.classify import NaiveBayesClassifier
-from nltk.tokenize import RegexpTokenizer
 
 
 class NaiveBayesSummarizer(BasicSummarizer):
@@ -73,18 +72,6 @@ class NaiveBayesSummarizer(BasicSummarizer):
         important_words = [word for (word, freq)
                            in important_words_freq if int(freq) > 1]
         return important_words
-
-    def clean_sent(self, sent: str):
-        s = sent.lower()
-        tokenizer = RegexpTokenizer(r'\w+')
-        s = tokenizer.tokenize(s)
-        #s = word_tokenize(s)
-        s = self.remove_punctuation(s)
-        s = self.remove_stopwords(s)
-        s = self.lemmatizing(s)
-        #s = self.stemming(s)
-        s = " ".join(s).strip()
-        return s
 
     def train(self, data):
         self.model = self.classifier.train(data)

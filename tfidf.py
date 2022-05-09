@@ -75,15 +75,6 @@ class tfidfScikitSummarizer(BasicSummarizer):
     def __init__(self, language: str):
         super().__init__(language)
 
-    def tokenize(self, text):
-        # increases performance a bit
-        text = text.lower()
-        tokens = self.helper.tokenize_words(text)
-        tokens = self.remove_punctuation(tokens)
-        tokens = self.remove_stopwords(tokens)
-        tokens = self.lemmatizing(tokens)
-        return tokens
-
     def create_tf_idf_matrix(self, sents: list[str]):
         tfidfvectorizer = TfidfVectorizer(
             analyzer='word', stop_words=self.helper.get_stopwords())

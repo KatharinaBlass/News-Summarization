@@ -1,5 +1,5 @@
 from basic_summarizer import BasicSummarizer
-from nltk import FreqDist, RegexpTokenizer
+from nltk import FreqDists
 
 
 class SumBasicSummarizer(BasicSummarizer):
@@ -35,6 +35,7 @@ class SumBasicSummarizer(BasicSummarizer):
             words = self.helper.tokenize_words(sent)
             if most_important_word in words:
                 return idx
+        return ranked_sentences[0][2]
 
     def get_most_important_word(self, word_probs: dict[str, float]):
         return max(word_probs, key=word_probs.get)
@@ -58,15 +59,6 @@ class SumBasicSummarizer(BasicSummarizer):
             word_probs = self.update_word_probabilities(
                 word_probs, words_to_update)
         return selected_sentences_indexes
-
-    def clean_sent(self, sent: str):
-        s = sent.lower()
-        tokenizer = RegexpTokenizer(r'\w+')
-        s = tokenizer.tokenize(s)
-        s = self.remove_stopwords(s)
-        s = self.lemmatizing(s)
-        s = " ".join(s).strip()
-        return s
 
     def summarize(self, sents: list[str], headline: str = None, num_of_sent: int = 5):
         cleaned_sentences = self.clean_sentences(sents)

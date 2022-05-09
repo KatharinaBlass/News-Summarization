@@ -9,16 +9,16 @@ class BasicSummarizer:
         self.language = language
         self.helper = Helper(self.language)
 
-    def filter_characters(self, sent: str):
-        # regex removes punctuation, []-brackets (but keeps its content), () (without keeping its content) and other special symbols related to speech
-        return re.sub("\[(.*)\]|(\(.*\))|([\.\,\!\?]+)|([\'\`\"\-\_\:\;\n]+)", "\g<1>", sent)
+    def filter_parantheses(self, sent: str):
+        # regex removes []-brackets (but keeps its content) and () (without keeping its content)
+        return re.sub("\[(.*)\]|(\(.*\))", "\g<1>", sent)
 
     def remove_stopwords(self, sent):
         sw = self.helper.get_stopwords()
         return [w for w in sent if w not in sw]
 
     def remove_punctuation(self, sent):
-        punct = [".", ",", ";", "-", "!", "?"]
+        punct = [".", ",", ";", ":", "-", "_", "!", "?"]
         return [w for w in sent if w not in punct]
 
     def stemming(self, sent):
@@ -37,6 +37,7 @@ class BasicSummarizer:
 
     def clean_sent(self, sent: str):
         s = sent.lower()
+        s = self.filter_parantheses(s)
         #tokenizer = RegexpTokenizer(r'\w+')
         #s = tokenizer.tokenize(s)
         s = self.helper.tokenize_words(s)
