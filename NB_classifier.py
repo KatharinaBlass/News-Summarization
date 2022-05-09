@@ -115,7 +115,6 @@ class NaiveBayesSummarizer(BasicSummarizer):
             features["headline_common_words_count"] = self.count_common_words(
                 sent_words, headline_words)
 
-        print(features)
         return features
 
     def contains_upper_case_words(self, sent: str):

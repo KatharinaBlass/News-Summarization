@@ -1,6 +1,4 @@
 from nltk.tokenize import RegexpTokenizer
-from nltk.stem import WordNetLemmatizer
-from nltk.stem import PorterStemmer
 import numpy as np
 import re
 from helpers import Helper
@@ -10,9 +8,6 @@ class BasicSummarizer:
     def __init__(self, language: str):
         self.language = language
         self.helper = Helper(self.language)
-        self.stemmer = PorterStemmer()
-        self.lemmatizer = WordNetLemmatizer()
-        # TODO: replace by spacy lemmatizer with support for multiple languages (except turkish), right now with nltk stemming and lemmatizing only english is supported
         self.word_embeddings = {}
         # TODO: use glove embeddings for all languages
         self.load_glove_word_embeddings()
@@ -39,10 +34,10 @@ class BasicSummarizer:
         return [w for w in sent if w not in punct]
 
     def stemming(self, sent):
-        return [self.stemmer.stem(w) for w in sent]
+        return [self.helper.stem(w) for w in sent]
 
-    def lemmatizing(self, sent: str):
-        return [self.lemmatizer.lemmatize(w) for w in sent]
+    def lemmatizing(self, sent):
+        return self.helper.lemmatize(" ".join(sent))
 
     def clean_sentences(self, sents: list[str]):
         filtered_sents = []
@@ -60,6 +55,7 @@ class BasicSummarizer:
         s = self.remove_punctuation(s)
         s = self.remove_stopwords(s)
         s = self.lemmatizing(s)
+        #s = self.stemming(s)
         s = " ".join(s).strip()
         return s
 
