@@ -2,23 +2,31 @@ from basic_summarizer import BasicSummarizer
 import numpy
 import nltk
 from nltk.classify import NaiveBayesClassifier
-from nltk.tokenize import word_tokenize, RegexpTokenizer
+from nltk.tokenize import RegexpTokenizer
 
 
 class NaiveBayesSummarizer(BasicSummarizer):
-    def __init__(self, train_articles: list[list[str]], train_labels: list[numpy.ndarray], train_headlines: list, validate_articles: list[list[str]], validate_labels: list[numpy.ndarray], validate_headlines: list, language: str = "german"):
-        super().__init__()
-        self.language = language
-        # TODO: fill up indicator word list
+    def __init__(self, train_articles: list[list[str]], train_labels: list[numpy.ndarray], train_headlines: list, validate_articles: list[list[str]], validate_labels: list[numpy.ndarray], validate_headlines: list, language: str):
+        super().__init__(language)
         self.indicator_words = {
-            "english": ["therefore", "thus", "consequently",
-                        "this proves", "as a result", "this suggests that", "in summary", "in conclusion", "in a nutshell", "in a word", "to conclude"],
-            "german": ["daher", "folglich", "deshalb", "darum", "demnach", "deswegen", "dies beweist",
-                       "als ergebnis", "infolgedessen", "daraufhin", "dies legt nahe", "zusammenfassend", "abschließend", "in einem wort", "abschließend"],
-            "french": [],
-            "spanish": [],
-            "russian": [],
-            "turkish": []
+            "en": [
+                "therefore", "thus", "consequently", "this proves", "as a result", "this suggests that", "in summary", "in conclusion", "in a nutshell", "in a word", "to conclude"
+            ],
+            "de": [
+                "daher", "folglich", "deshalb", "darum", "demnach", "deswegen", "dies beweist", "als ergebnis", "infolgedessen", "daraufhin", "dies legt nahe", "zusammenfassend", "abschließend", "in einem wort", "abschließend"
+            ],
+            "fr": [
+                "donc", "ainsi", "par conséquent", "en conséquence", "cela prouve", "comme résultat", "ceci suggère", "en résumé", "pour résumer", "en bref", "en conclusion", "finalement"
+            ],
+            "es": [
+                "por lo tanto", "así", "en consecuencia", "esto demuestra", "como resultado", "esto sugiere que", "en resumen", "en conclusión", "en pocas palabras", "para concluir"
+            ],
+            "ru": [
+                "поэтому", "таким образом", "следовательно", "в результате", "в заключение", "в двух словах", "в заключение"
+            ],
+            "tu": [
+                "bu nedenle", "böylece", "sonuç olarak", "bu kanıtlıyor", "sonuç olarak", "bu şunu gösteriyor", "özetle", "sonuç olarak", "özetle", "tek kelimeyle", "sonlandırmak"
+            ]
         }
 
         self.classifier = NaiveBayesClassifier
@@ -60,7 +68,7 @@ class NaiveBayesSummarizer(BasicSummarizer):
 
     def get_most_important_words(self, sents: list):
         cleaned_sents = self.clean_sentences(sents)
-        words = word_tokenize(" ".join(cleaned_sents))
+        words = self.helper.tokenize_words(" ".join(cleaned_sents))
         important_words_freq = nltk.FreqDist(words).most_common()
         important_words = [word for (word, freq)
                            in important_words_freq if int(freq) > 1]
@@ -90,7 +98,7 @@ class NaiveBayesSummarizer(BasicSummarizer):
 
     def extract_features(self, sent: str, position: int, topic_words: list, headline: str = None):
         cleaned_sent = self.clean_sent(sent)
-        sent_words = word_tokenize(cleaned_sent)
+        sent_words = self.helper.tokenize_words(cleaned_sent)
 
         features = {
             "length": len(sent_words),
@@ -103,7 +111,7 @@ class NaiveBayesSummarizer(BasicSummarizer):
         if headline:
             # no headlines given for english data
             cleaned_headline = self.clean_sent(headline)
-            headline_words = word_tokenize(cleaned_headline)
+            headline_words = self.helper.tokenize_words(cleaned_headline)
             features["headline_common_words_count"] = self.count_common_words(
                 sent_words, headline_words)
 
@@ -111,7 +119,7 @@ class NaiveBayesSummarizer(BasicSummarizer):
         return features
 
     def contains_upper_case_words(self, sent: str):
-        sent_words = word_tokenize(sent)
+        sent_words = self.helper.tokenize_words(sent)
         # check for upper case word, but ignore first word, since sentence beginnings are always upper case
         for word in sent_words[1:]:
             if word[0].isupper():
@@ -133,8 +141,7 @@ class NaiveBayesSummarizer(BasicSummarizer):
         return [(self.extract_features(sent, pos, topic_words, headlines[article_idx] if headlines else None), label)
                 for (sent, pos, label, topic_words, article_idx) in data]
 
-    def summarize(self, sents: list, headline: str = None, num_of_sent: int = 5, language="german"):
-        self.language = language
+    def summarize(self, sents: list, headline: str = None, num_of_sent: int = 5):
         generated_summary_sents = list()
         topic_words = self.get_most_important_words(sents)
         for (idx, sent) in enumerate(sents):
@@ -143,6 +150,5 @@ class NaiveBayesSummarizer(BasicSummarizer):
             if predicted_label > 0:
                 # sentence belongs to summary
                 generated_summary_sents.append(sent)
-        self.summary_sents = generated_summary_sents
-        self.model.show_most_informative_features(10)
+        # self.model.show_most_informative_features(10)
         return generated_summary_sents

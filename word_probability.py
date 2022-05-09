@@ -1,13 +1,16 @@
 from basic_summarizer import BasicSummarizer
-from nltk import word_tokenize, FreqDist, RegexpTokenizer
+from nltk import FreqDist, RegexpTokenizer
 
 
 class SumBasicSummarizer(BasicSummarizer):
+    def __init__(self, language: str):
+        super().__init__(language)
+
     def score_sentences(self, sents: list[str], word_probs: dict[str, float]):
         sentences_scores = list()
         for (idx, sent) in enumerate(sents):
             sent_weight = 0
-            words = word_tokenize(sent)
+            words = self.helper.tokenize_words(sent)
             if len(words) > 0:
                 for word in words:
                     if word in word_probs.keys():
@@ -17,7 +20,7 @@ class SumBasicSummarizer(BasicSummarizer):
         return sorted(sentences_scores, reverse=True)
 
     def get_word_probabilities(self, article: str):
-        article_words = word_tokenize(article)
+        article_words = self.helper.tokenize_words(article)
         num_words = len(article_words)
         word_freq = FreqDist(article_words).most_common()
         word_probs = dict()
@@ -29,7 +32,7 @@ class SumBasicSummarizer(BasicSummarizer):
         for (_, sent, idx) in ranked_sentences:
             if idx in already_selected_sent_idx:
                 continue
-            words = word_tokenize(sent)
+            words = self.helper.tokenize_words(sent)
             if most_important_word in words:
                 return idx
 
@@ -50,7 +53,8 @@ class SumBasicSummarizer(BasicSummarizer):
             new_sent_idx = self.select_sentence(
                 ranked_sentences, most_important_word, selected_sentences_indexes)
             selected_sentences_indexes.append(new_sent_idx)
-            words_to_update = set(word_tokenize(sents[new_sent_idx]))
+            words_to_update = set(
+                self.helper.tokenize_words(sents[new_sent_idx]))
             word_probs = self.update_word_probabilities(
                 word_probs, words_to_update)
         return selected_sentences_indexes
@@ -64,8 +68,7 @@ class SumBasicSummarizer(BasicSummarizer):
         s = " ".join(s).strip()
         return s
 
-    def summarize(self, sents: list[str], headline: str = None, num_of_sent: int = 5, language="german"):
-        self.language = language
+    def summarize(self, sents: list[str], headline: str = None, num_of_sent: int = 5):
         cleaned_sentences = self.clean_sentences(sents)
         article = " ".join(cleaned_sentences)
         word_probs = self.get_word_probabilities(article)

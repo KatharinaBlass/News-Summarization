@@ -1,11 +1,12 @@
 from basic_summarizer import BasicSummarizer
-from nltk import word_tokenize
-from nltk.corpus import stopwords
 from sklearn.feature_extraction.text import TfidfVectorizer
 import math
 
 
 class tfidfSummarizer(BasicSummarizer):
+    def __init__(self, language: str):
+        super().__init__(language)
+
     def create_tf_idf_matrix(self, tokenized_sents: list[list[str]], num_documents_per_word: dict):
         num_documents = len(tokenized_sents)
         tf_idf_matrix = list()
@@ -59,31 +60,33 @@ class tfidfSummarizer(BasicSummarizer):
             """
         return sentencesScores
 
-    def summarize(self, sents: list[str], headline: str = None, num_of_sent: int = 5, language="german"):
-        self.language = language
+    def summarize(self, sents: list[str], headline: str = None, num_of_sent: int = 5):
         cleaned_sentences = self.clean_sentences(sents)
-        tokenized_sents = [word_tokenize(sent) for sent in cleaned_sentences]
+        tokenized_sents = [self.helper.tokenize_words(
+            sent) for sent in cleaned_sentences]
         num_documents_per_word = self.count_documents_per_word(tokenized_sents)
         tf_idf_matrix = self.create_tf_idf_matrix(
             tokenized_sents, num_documents_per_word)
         sentence_scores = self.score_sentences(tf_idf_matrix)
-        res = self.get_top_n_sentences(sentence_scores, sents, num_of_sent)
-        return res
+        return self.get_top_n_sentences(sentence_scores, sents, num_of_sent)
 
 
 class tfidfScikitSummarizer(BasicSummarizer):
+    def __init__(self, language: str):
+        super().__init__(language)
+
     def tokenize(self, text):
         # increases performance a bit
         text = text.lower()
-        tokens = word_tokenize(text)
+        tokens = self.helper.tokenize_words(text)
         tokens = self.remove_punctuation(tokens)
         tokens = self.remove_stopwords(tokens)
         tokens = self.lemmatizing(tokens)
         return tokens
 
-    def create_tf_idf_matrix(self, sents: list[str], language: str):
+    def create_tf_idf_matrix(self, sents: list[str]):
         tfidfvectorizer = TfidfVectorizer(
-            analyzer='word', stop_words=stopwords.words(language))
+            analyzer='word', stop_words=self.helper.get_stopwords())
         tfidf_wm = tfidfvectorizer.fit_transform(sents)
         return tfidf_wm
 
@@ -106,10 +109,8 @@ class tfidfScikitSummarizer(BasicSummarizer):
 
         return sentencesScores
 
-    def summarize(self, sents: list[str], headline: str = None, num_of_sent: int = 5, language="german"):
-        self.language = language
+    def summarize(self, sents: list[str], headline: str = None, num_of_sent: int = 5):
         cleaned_sentences = self.clean_sentences(sents)
-        tf_idf_matrix = self.create_tf_idf_matrix(cleaned_sentences, language)
+        tf_idf_matrix = self.create_tf_idf_matrix(cleaned_sentences)
         sentence_scores = self.score_sentences(tf_idf_matrix)
-        res = self.get_top_n_sentences(sentence_scores, sents, num_of_sent)
-        return res
+        return self.get_top_n_sentences(sentence_scores, sents, num_of_sent)

@@ -1,16 +1,15 @@
-from nltk.corpus import stopwords
-from nltk.tokenize import word_tokenize, RegexpTokenizer
-from nltk import pos_tag
+from nltk.tokenize import RegexpTokenizer
 from nltk.stem import WordNetLemmatizer
 from nltk.stem import PorterStemmer
 import numpy as np
 import re
-from nltk.cluster.util import cosine_distance
+from helpers import Helper
 
 
 class BasicSummarizer:
-    def __init__(self):
-        self.language = "german"
+    def __init__(self, language: str):
+        self.language = language
+        self.helper = Helper(self.language)
         self.stemmer = PorterStemmer()
         self.lemmatizer = WordNetLemmatizer()
         # TODO: replace by spacy lemmatizer with support for multiple languages (except turkish), right now with nltk stemming and lemmatizing only english is supported
@@ -27,48 +26,12 @@ class BasicSummarizer:
             self.word_embeddings[word] = coefs
         f.close()
 
-    def sentence_similarity(self, sent1: str, sent2: str):
-        # 1 means sentences are maximal similar, -1 means the opposite
-
-        # if one sent is empty, it will cause an error in the cosine distance calculation --> return -1 (means it is unsimilar --> sentence will not be chosen for summary)
-        if len(sent1) == 0 or len(sent2) == 0:
-            return -1
-
-        # lexicon = list(set(sent1 + sent2))
-        # vector1 = self.build_vector(lexicon, sent1)
-        # vector2 = self.build_vector(lexicon, sent2)
-
-        # glove embeddings result in poor scores
-        vector1 = self.build_glove_vector(sent1)
-        vector2 = self.build_glove_vector(sent2)
-
-        vector1_all_zeros = not np.any(vector1)
-        vector2_all_zeros = not np.any(vector2)
-
-        if vector1_all_zeros or vector2_all_zeros:
-            return -1
-
-        return 1 - cosine_distance(vector1, vector2)
-
-    def build_glove_vector(self, sent: str):
-        if len(sent) != 0:
-            v = sum([self.word_embeddings.get(w, np.zeros((100,)))
-                     for w in sent.split()])/(len(sent.split())+0.001)
-        else:
-            v = np.zeros((100,))
-        return v
-
     def filter_characters(self, sent: str):
         # regex removes punctuation, []-brackets (but keeps its content), () (without keeping its content) and other special symbols related to speech
         return re.sub("\[(.*)\]|(\(.*\))|([\.\,\!\?]+)|([\'\`\"\-\_\:\;\n]+)", "\g<1>", sent)
 
-    def filter_POS_tags(self, sent_tokens: list[str]):
-        tags = ["NN", "NNS", "NNP",  "JJ", "JJR", "JJS"]
-        return [word for (word, tag) in pos_tag(
-            sent_tokens) if tag in tags]
-
     def remove_stopwords(self, sent):
-        sw = stopwords.words(self.language)
+        sw = self.helper.get_stopwords()
         return [w for w in sent if w not in sw]
 
     def remove_punctuation(self, sent):
@@ -93,7 +56,7 @@ class BasicSummarizer:
         s = sent.lower()
         #tokenizer = RegexpTokenizer(r'\w+')
         #s = tokenizer.tokenize(s)
-        s = word_tokenize(s)
+        s = self.helper.tokenize_words(s)
         s = self.remove_punctuation(s)
         s = self.remove_stopwords(s)
         s = self.lemmatizing(s)

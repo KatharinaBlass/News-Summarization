@@ -53,9 +53,9 @@ class ExperimentRunner:
             self.load_labels()
             print("model training...")
             self.summarizer = summarizer_class(
-                self.train_data["articles"], self.labels["train"], self.train_data["headlines"], self.validation_data["articles"], self.labels["validation"], self.validation_data["headlines"])
+                self.train_data["articles"], self.labels["train"], self.train_data["headlines"], self.validation_data["articles"], self.labels["validation"], self.validation_data["headlines"], language=self.language)
         else:
-            self.summarizer = summarizer_class()
+            self.summarizer = summarizer_class(self.language)
 
     def load_labels(self):
         if os.path.exists(self.language+LABEL_FILE_NAME):
@@ -77,7 +77,7 @@ class ExperimentRunner:
 
     def summarize_article(self, article_sents: list, summary: str, headline: str, summarizer: BasicSummarizer, num_sents: int = 2, with_print=False):
         generated_summary_sents = summarizer.summarize(
-            article_sents, headline=headline, num_of_sent=num_sents, language=language_dict[self.language])
+            article_sents, headline=headline, num_of_sent=num_sents)
         generated_summary = " ".join(generated_summary_sents)
         rouge_scores = self.evaluator.rouge_score_single(
             summary, generated_summary)
