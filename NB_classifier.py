@@ -6,64 +6,57 @@ from nltk.tokenize import word_tokenize, RegexpTokenizer
 
 
 class NaiveBayesSummarizer(BasicSummarizer):
-    def __init__(self, train_articles: list[list[str]], train_labels: list[numpy.ndarray], train_headlines: list, validate_articles: list[list[str]], validate_labels: list[numpy.ndarray], validate_headlines: list):
+    def __init__(self, train_articles: list[list[str]], train_labels: list[numpy.ndarray], train_headlines: list, validate_articles: list[list[str]], validate_labels: list[numpy.ndarray], validate_headlines: list, language: str = "german"):
         super().__init__()
+        self.language = language
+        # TODO: fill up indicator word list
         self.indicator_words = {
-            "en": ["so", "therefore", "thus", "consequently",
-                   "this proves", "as a result", "this suggests that", "in summary", "in conclusion", "in a nutshell", "in a word", "to conclude"],
-            "de": ["daher", "folglich", "deshalb", "darum", "demnach", "deswegen", "dies beweist",
-                   "als ergebnis", "infolgedessen", "daraufhin", "dies legt nahe", "zusammenfassend", "abschließend", "in einem wort", "abschließend"]}
-
-        self.train_data = self.format_data(
-            train_articles, train_labels, train_headlines)
-        self.validation_data = self.format_data(
-            validate_articles, validate_labels, validate_headlines)
+            "english": ["therefore", "thus", "consequently",
+                        "this proves", "as a result", "this suggests that", "in summary", "in conclusion", "in a nutshell", "in a word", "to conclude"],
+            "german": ["daher", "folglich", "deshalb", "darum", "demnach", "deswegen", "dies beweist",
+                       "als ergebnis", "infolgedessen", "daraufhin", "dies legt nahe", "zusammenfassend", "abschließend", "in einem wort", "abschließend"],
+            "french": [],
+            "spanish": [],
+            "russian": [],
+            "turkish": []
+        }
 
         self.classifier = NaiveBayesClassifier
         self.model = None
-        self.train_features = self.build_data(self.train_data)
-        self.validation_features = self.build_data(self.validation_data)
+
+        self.train_data = self.format_data(
+            train_articles, train_labels)
+        self.validation_data = self.format_data(
+            validate_articles, validate_labels)
+
+        self.train_features = self.build_data(self.train_data, train_headlines)
+        self.validation_features = self.build_data(
+            self.validation_data, validate_headlines)
         self.train_and_evaluate(self.train_features, self.validation_features)
 
-    def format_data(self, articles: list, label: list, headlines: list):
-        sentences = self.merge_articles(articles)
-        sentence_positions = self.get_articles_sent_positions(articles)
-        sentence_headlines = self.get_articles_headlines(articles, headlines)
+    def format_data(self, articles: list, label: list):
+        (sentences, sentence_article_indexes,
+         sentence_positions, sentence_topic_words) = self.extract_flat_sentence_attributes(articles)
         sentence_labels = self.merge_labels(label)
-        sentence_topic_words = self.get_articles_topic_words(articles)
 
-        return list(zip(sentences, sentence_positions, sentence_headlines, sentence_labels, sentence_topic_words))
+        return list(zip(sentences, sentence_positions, sentence_labels, sentence_topic_words, sentence_article_indexes))
 
-    def merge_articles(self, articles: list[list[str]]):
-        total_articles = list()
-        for article in articles:
-            total_articles += article
-        return total_articles
-
-    def get_articles_sent_positions(self, articles: list[list[str]]):
-        article_sent_positions = list()
-        for article in articles:
-            pos = [idx+1 for (idx, _) in enumerate(article)]
-            article_sent_positions += pos
-        return article_sent_positions
-
-    def get_articles_headlines(self, articles: list[list[str]], headlines: list):
-        sent_headlines = list()
+    def extract_flat_sentence_attributes(self, articles: list[list[str]]):
+        flat_articles_sents = list()
+        flat_articles_indexes = list()
+        flat_articles_sent_positions = list()
+        flat_articles_topic_words = list()
         for (idx, article) in enumerate(articles):
-            for i in range(len(article)):
-                sent_headlines.append(" ".join(headlines[idx]))
-        return sent_headlines
-
-    def merge_labels(self, labels: list[numpy.ndarray]):
-        return numpy.concatenate((labels))
-
-    def get_articles_topic_words(self, articles: list):
-        articles_topic_words = list()
-        for article in articles:
+            flat_articles_sents += article
             topic_words = self.get_most_important_words(article)
             for i in range(len(article)):
-                articles_topic_words.append(topic_words)
-        return articles_topic_words
+                flat_articles_indexes.append(idx)
+                flat_articles_sent_positions.append(i)
+                flat_articles_topic_words.append(topic_words)
+        return (flat_articles_sents, flat_articles_indexes, flat_articles_sent_positions, flat_articles_topic_words)
+
+    def merge_labels(self, labels: list[numpy.ndarray]):
+        return numpy.concatenate(labels)
 
     def get_most_important_words(self, sents: list):
         cleaned_sents = self.clean_sentences(sents)
@@ -86,69 +79,70 @@ class NaiveBayesSummarizer(BasicSummarizer):
         return s
 
     def train(self, data):
-        # train classifier and store model
         self.model = self.classifier.train(data)
 
     def test(self, data):
-        # return accuracy for the model on input data
         print("accuracy:", nltk.classify.accuracy(self.model, data))
 
     def train_and_evaluate(self, train, test):
         self.train(train)
         self.test(test)
 
-    def extract_features(self, sent: str, position: int, headline: str, topic_words: list):
+    def extract_features(self, sent: str, position: int, topic_words: list, headline: str = None):
         cleaned_sent = self.clean_sent(sent)
         sent_words = word_tokenize(cleaned_sent)
 
-        cleaned_headline = self.clean_sent(headline)
-        headline_words = word_tokenize(cleaned_headline)
-
-        return {
+        features = {
             "length": len(sent_words),
             "position": position,
-            "headline_common_words_count": self.count_common_words(sent_words, headline_words),
             "topic_words_count": self.count_common_words(sent_words, topic_words),
-            "contains_indicator_words": self.contains_indicator_words(sent),
+            "contains_indicator_words": self.contains_indicator_words(sent_words),
             "contains_upper_case_words": self.contains_upper_case_words(sent)
         }
 
-    def similarity_to_n_sents(self, sent, n_sents):
-        total_sim = 0
-        for sent2 in n_sents:
-            sim = self.sentence_similarity(sent, sent2)
-            total_sim += sim
-        return total_sim
+        if headline:
+            # no headlines given for english data
+            cleaned_headline = self.clean_sent(headline)
+            headline_words = word_tokenize(cleaned_headline)
+            features["headline_common_words_count"] = self.count_common_words(
+                sent_words, headline_words)
 
-    def contains_upper_case_words(self, sent_words: list):
-        for word in sent_words:
+        print(features)
+        return features
+
+    def contains_upper_case_words(self, sent: str):
+        sent_words = word_tokenize(sent)
+        # check for upper case word, but ignore first word, since sentence beginnings are always upper case
+        for word in sent_words[1:]:
             if word[0].isupper():
                 return True
+        return False
 
     def contains_indicator_words(self, sent_words: list):
         sentence = " ".join([word.lower() for word in sent_words])
 
-        for indicator in self.indicator_words["de"]:
+        for indicator in self.indicator_words[self.language]:
             if indicator in sentence:
                 return True
+        return False
 
     def count_common_words(self, words1, words2):
         return len(set(words1).intersection(words2))
 
-    def build_data(self, data):
-        return [(self.extract_features(sent, pos, headline, topic_words), label)
-                for (sent, pos, headline, label, topic_words) in data]
+    def build_data(self, data, headlines: list[str] = None):
+        return [(self.extract_features(sent, pos, topic_words, headlines[article_idx] if headlines else None), label)
+                for (sent, pos, label, topic_words, article_idx) in data]
 
-    def summarize(self, sents: list, headline: str, num_of_sent: int = 5, language="german"):
+    def summarize(self, sents: list, headline: str = None, num_of_sent: int = 5, language="german"):
         self.language = language
         generated_summary_sents = list()
         topic_words = self.get_most_important_words(sents)
         for (idx, sent) in enumerate(sents):
-            feature = self.extract_features(sent, idx+1, headline, topic_words)
+            feature = self.extract_features(sent, idx+1, topic_words, headline)
             predicted_label = self.model.classify(feature)
             if predicted_label > 0:
                 # sentence belongs to summary
                 generated_summary_sents.append(sent)
         self.summary_sents = generated_summary_sents
-        # self.model.show_most_informative_features(20)
+        self.model.show_most_informative_features(10)
         return generated_summary_sents

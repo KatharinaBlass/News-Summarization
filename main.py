@@ -26,10 +26,11 @@ language_dict = {
     "fr": 'french',
     "es": 'spanish',
     "ru": 'russian',
-    "tu": 'turkish'
+    "tu": 'turkish',
+    "en": 'english'
 }
 
-LABEL_FILE_NAME = 'extractive_labels.json'
+LABEL_FILE_NAME = '_extractive_labels.json'
 
 
 class ExperimentRunner:
@@ -91,7 +92,7 @@ class ExperimentRunner:
 
         for (idx, article) in enumerate(articles):
             rouge_scores = self.summarize_article(
-                article, " ".join(gold_summaries[idx]), " ".join(headlines[idx]), self.summarizer, num_sents)
+                article, " ".join(gold_summaries[idx]), " ".join(headlines[idx]) if headlines else None, self.summarizer, num_sents)
             rouge_scores_list.append(rouge_scores)
 
         avg_rouge_scores = self.evaluator.calculate_avg_rouge_score(
