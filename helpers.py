@@ -28,7 +28,7 @@ class Helper():
         if self.language != 'turkish':
             spacy_module = self.spacy_module_dict[lang]
             self.nlp = spacy.load(spacy_module, disable=[
-                                  'parser', 'tagger', 'ner'])
+                                  'parser', 'ner'])
             self.stemmer = SnowballStemmer(language=self.language)
         else:
             self.nlp = None

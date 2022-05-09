@@ -2,6 +2,7 @@ import numpy as np
 import networkx as nx  # version 2.6 !
 from basic_summarizer import BasicSummarizer
 from nltk.cluster.util import cosine_distance
+from nltk import RegexpTokenizer
 
 
 class TextRankSummarizer(BasicSummarizer):
@@ -21,13 +22,9 @@ class TextRankSummarizer(BasicSummarizer):
     def sentence_similarity(self, sent1: str, sent2: str):
         # 1 means sentences are maximal similar, -1 means unsimilar
 
-        # lexicon = list(set(sent1 + sent2))
-        # vector1 = self.build_vector(lexicon, sent1)
-        # vector2 = self.build_vector(lexicon, sent2)
-
-        # glove embeddings result in poor scores
-        vector1 = self.build_glove_vector(sent1)
-        vector2 = self.build_glove_vector(sent2)
+        lexicon = list(set(sent1 + sent2))
+        vector1 = self.build_vector(lexicon, sent1)
+        vector2 = self.build_vector(lexicon, sent2)
 
         # if one vector is empty, it will cause an error in the cosine distance calculation --> return -1 (means it is unsimilar --> sentence will not be chosen for summary)
         vector1_all_zeros = not np.any(vector1)
@@ -46,14 +43,6 @@ class TextRankSummarizer(BasicSummarizer):
 
         return vector
 
-    def build_glove_vector(self, sent: str):
-        if len(sent) != 0:
-            v = sum([self.word_embeddings.get(w, np.zeros((100,)))
-                     for w in sent.split()])/(len(sent.split())+0.001)
-        else:
-            v = np.zeros((100,))
-        return v
-
     def apply_pagerank(self, similarity_matrix: np.ndarray):
         similarity_graph = nx.from_numpy_array(
             similarity_matrix)
@@ -62,11 +51,13 @@ class TextRankSummarizer(BasicSummarizer):
 
     def clean_sent(self, sent: str):
         s = sent.lower()
-        s = self.filter_characters(s)
-        s = self.helper.tokenize_words(s)
+        tokenizer = RegexpTokenizer(r'\w+')
+        s = tokenizer.tokenize(s)
+        #s = self.filter_characters(s)
+        #s = self.helper.tokenize_words(s)
         s = self.remove_stopwords(s)
         # s = self.stemming(s)
-        s = self.lemmatizing(s)
+        # s = self.lemmatizing(s)
         s = " ".join(s).strip()
         return s
 

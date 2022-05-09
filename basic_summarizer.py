@@ -8,18 +8,6 @@ class BasicSummarizer:
     def __init__(self, language: str):
         self.language = language
         self.helper = Helper(self.language)
-        self.word_embeddings = {}
-        # TODO: use glove embeddings for all languages
-        self.load_glove_word_embeddings()
-
-    def load_glove_word_embeddings(self):
-        f = open('./glove/glove.6B.100d.txt', encoding='utf-8')
-        for line in f:
-            values = line.split()
-            word = values[0]
-            coefs = np.asarray(values[1:], dtype='float32')
-            self.word_embeddings[word] = coefs
-        f.close()
 
     def filter_characters(self, sent: str):
         # regex removes punctuation, []-brackets (but keeps its content), () (without keeping its content) and other special symbols related to speech
