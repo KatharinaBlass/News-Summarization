@@ -36,6 +36,8 @@ class BasicSummarizer:
         return filtered_sents
 
     def clean_sent(self, sent: str):
+        if type(sent) != str:
+            return ""
         s = sent.lower()
         s = self.filter_parantheses(s)
         #tokenizer = RegexpTokenizer(r'\w+')

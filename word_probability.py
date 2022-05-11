@@ -1,5 +1,5 @@
 from basic_summarizer import BasicSummarizer
-from nltk import FreqDists
+from nltk import FreqDist
 
 
 class SumBasicSummarizer(BasicSummarizer):
@@ -42,8 +42,9 @@ class SumBasicSummarizer(BasicSummarizer):
 
     def update_word_probabilities(self, word_probs: dict[str, float], words_to_update: list[str]):
         for word in words_to_update:
-            old_word_prob = word_probs[word]
-            word_probs[word] = old_word_prob * old_word_prob
+            if word in word_probs.keys():
+                old_word_prob = word_probs[word]
+                word_probs[word] = old_word_prob * old_word_prob
         return word_probs
 
     def select_n_sentences(self, word_probs: dict[str, float], n: int, sents: list[str]):

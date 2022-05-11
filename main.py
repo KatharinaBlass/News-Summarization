@@ -45,7 +45,7 @@ class ExperimentRunner:
         self.data_loader = DataLoader(self.language)
         summarizer_class = summarizer_dict[self.algorithm]
         self.test_data = self.data_loader.get_formatted_data("test")
-        if algorithm == "nb":
+        if self.algorithm == "nb":
             self.labels = dict()
             self.train_data = self.data_loader.get_formatted_data("train")
             self.validation_data = self.data_loader.get_formatted_data(
