@@ -30,7 +30,7 @@ class MLSUMCorpusLoader(DataLoader):
             self.split_sentences(article["title"]) for article in data]
 
         return {
-            "articles": articles, "summaries": summaries, "headlines": headlines
+            "articles": articles[:1500], "summaries": summaries[:1500], "headlines": headlines[:1500]
         }
 
 
@@ -46,5 +46,5 @@ class CNNCorpusLoader(DataLoader):
             self.split_sentences(article["highlights"]) for article in data]
 
         return {
-            "articles": articles, "summaries": summaries, "headlines": None
+            "articles": articles[:1500], "summaries": summaries[:1500], "headlines": None
         }

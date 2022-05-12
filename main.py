@@ -1,4 +1,4 @@
-from NB_classifier import NaiveBayesSummarizer
+from NB_classifier import NaiveBayesSummarizer, MultinomialNBSummarizer
 from basic_summarizer import BasicSummarizer
 from data_loader import DataLoader
 from text_rank import TextRankSummarizer
@@ -11,14 +11,14 @@ import json
 import os.path
 import sys
 import getopt
-
+import time
 
 summarizer_dict = {
     "leadn": LeadNSummarizer,
     "tfidf": tfidfScikitSummarizer,
     "textrank": TextRankSummarizer,
     "sumbasic": SumBasicSummarizer,
-    "nb": NaiveBayesSummarizer
+    "nb": MultinomialNBSummarizer
 }
 
 language_dict = {
@@ -52,8 +52,11 @@ class ExperimentRunner:
                 "validation")
             self.load_labels()
             print("model training...")
+            model_training_start_time = time.time()
             self.summarizer = summarizer_class(
-                self.train_data["articles"], self.labels["train"], self.train_data["headlines"], self.validation_data["articles"], self.labels["validation"], self.validation_data["headlines"], language=self.language)
+                self.train_data["articles"], self.labels["train"][:1500], self.train_data["headlines"], self.validation_data["articles"], self.labels["validation"][:1500], self.validation_data["headlines"], language=self.language)
+            print("model training time --- %s seconds" %
+                  (time.time() - model_training_start_time))
         else:
             self.summarizer = summarizer_class(self.language)
 
@@ -145,8 +148,19 @@ class ExperimentRunner:
 
 def main(language, algorithm):
     print(language, algorithm)
-    experiment = ExperimentRunner(language, algorithm)
-    experiment.run()
+    if language == "all":
+        lan = language_dict.keys()
+        for l in lan:
+            print(l, algorithm)
+            start_time = time.time()
+            experiment = ExperimentRunner(l, algorithm)
+            experiment.run()
+            print("execution time --- %s seconds" % (time.time() - start_time))
+    else:
+        start_time = time.time()
+        experiment = ExperimentRunner(language, algorithm)
+        experiment.run()
+        print("execution time --- %s seconds" % (time.time() - start_time))
 
 
 if __name__ == "__main__":
@@ -163,7 +177,7 @@ if __name__ == "__main__":
 
     for opt, arg in opts:
         if opt == '-l':
-            if arg in supported_languages:
+            if arg == "all" or arg in supported_languages:
                 language = arg
             else:
                 print('language not supported - supported languages are ',
