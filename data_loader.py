@@ -12,15 +12,15 @@ class DataLoader():
     def split_sentences(self, text: str):
         return nltk.tokenize.sent_tokenize(text)
 
-    def get_formatted_data(self, data_type: str = "test"):
-        return self.corpus_loader.get_formatted_data(data_type)
+    def get_formatted_data(self, data_type: str = "test", train_set_size=None):
+        return self.corpus_loader.get_formatted_data(data_type, train_set_size)
 
 
 class MLSUMCorpusLoader(DataLoader):
     def __init__(self, language):
         self.dataset = load_dataset("mlsum", language)
 
-    def get_formatted_data(self, type: str):
+    def get_formatted_data(self, type: str, train_set_size=None):
         data = self.dataset[type]
         articles = [
             self.split_sentences(article["text"]) for article in data]
@@ -29,22 +29,32 @@ class MLSUMCorpusLoader(DataLoader):
         headlines = [
             self.split_sentences(article["title"]) for article in data]
 
-        return {
-            "articles": articles[:1500], "summaries": summaries[:1500], "headlines": headlines[:1500]
-        }
+        if train_set_size:
+            return {
+                "articles": articles[:train_set_size], "summaries": summaries[:train_set_size], "headlines": headlines[:train_set_size]
+            }
+        else:
+            return {
+                "articles": articles, "summaries": summaries, "headlines": headlines
+            }
 
 
 class CNNCorpusLoader(DataLoader):
     def __init__(self):
         self.dataset = load_dataset("cnn_dailymail", "3.0.0")
 
-    def get_formatted_data(self, type: str):
+    def get_formatted_data(self, type: str, train_set_size=None):
         data = self.dataset[type]
         articles = [
             self.split_sentences(article["article"]) for article in data]
         summaries = [
             self.split_sentences(article["highlights"]) for article in data]
 
-        return {
-            "articles": articles[:1500], "summaries": summaries[:1500], "headlines": None
-        }
+        if train_set_size:
+            return {
+                "articles": articles[:train_set_size], "summaries": summaries[:train_set_size], "headlines": None
+            }
+        else:
+            return {
+                "articles": articles, "summaries": summaries, "headlines": None
+            }

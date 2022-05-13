@@ -1,4 +1,4 @@
-from NB_classifier import NaiveBayesSummarizer, MultinomialNBSummarizer
+from NB_classifier import NaiveBayesSummarizer
 from basic_summarizer import BasicSummarizer
 from data_loader import DataLoader
 from text_rank import TextRankSummarizer
@@ -18,7 +18,7 @@ summarizer_dict = {
     "tfidf": tfidfScikitSummarizer,
     "textrank": TextRankSummarizer,
     "sumbasic": SumBasicSummarizer,
-    "nb": MultinomialNBSummarizer
+    "nb": NaiveBayesSummarizer
 }
 
 language_dict = {
@@ -34,12 +34,12 @@ LABEL_FILE_NAME = '_extractive_labels.json'
 
 
 class ExperimentRunner:
-    def __init__(self, language, algorithm):
+    def __init__(self, language, algorithm, train_set_size=15000):
         self.language = language
         self.algorithm = algorithm
-        self.setup()
+        self.setup(train_set_size)
 
-    def setup(self):
+    def setup(self, train_set_size):
         print("preparing data...")
         self.evaluator = Evaluator()
         self.data_loader = DataLoader(self.language)
@@ -47,23 +47,23 @@ class ExperimentRunner:
         self.test_data = self.data_loader.get_formatted_data("test")
         if self.algorithm == "nb":
             self.labels = dict()
-            self.train_data = self.data_loader.get_formatted_data("train")
+            self.train_data = self.data_loader.get_formatted_data(
+                "train", train_set_size)
             self.validation_data = self.data_loader.get_formatted_data(
                 "validation")
-            self.load_labels()
+            self.load_labels(train_set_size)
             print("model training...")
-            model_training_start_time = time.time()
             self.summarizer = summarizer_class(
-                self.train_data["articles"], self.labels["train"][:1500], self.train_data["headlines"], self.validation_data["articles"], self.labels["validation"][:1500], self.validation_data["headlines"], language=self.language)
-            print("model training time --- %s seconds" %
-                  (time.time() - model_training_start_time))
+                self.train_data["articles"], self.labels["train"], self.train_data["headlines"], self.validation_data["articles"], self.labels["validation"], self.validation_data["headlines"], language=self.language)
         else:
             self.summarizer = summarizer_class(self.language)
 
-    def load_labels(self):
+    def load_labels(self, train_set_size):
         if os.path.exists(self.language+LABEL_FILE_NAME):
             with open(self.language+LABEL_FILE_NAME) as json_file:
                 self.labels = json.load(json_file)
+                if train_set_size:
+                    self.labels["train"] = self.labels["train"][:train_set_size]
 
         else:
             train_labels = self.make_extractive_labels(
@@ -86,7 +86,7 @@ class ExperimentRunner:
             summary, generated_summary)
         return rouge_scores
 
-    def run(self, num_sents: int = 2):
+    def run(self, num_sents: int = 3):
         print("summarizing...")
         articles = self.test_data["articles"]
         gold_summaries = self.test_data["summaries"]
@@ -148,19 +148,10 @@ class ExperimentRunner:
 
 def main(language, algorithm):
     print(language, algorithm)
-    if language == "all":
-        lan = language_dict.keys()
-        for l in lan:
-            print(l, algorithm)
-            start_time = time.time()
-            experiment = ExperimentRunner(l, algorithm)
-            experiment.run()
-            print("execution time --- %s seconds" % (time.time() - start_time))
-    else:
-        start_time = time.time()
-        experiment = ExperimentRunner(language, algorithm)
-        experiment.run()
-        print("execution time --- %s seconds" % (time.time() - start_time))
+    start_time = time.time()
+    experiment = ExperimentRunner(language, algorithm)
+    experiment.run()
+    print("execution time --- %s seconds" % (time.time() - start_time))
 
 
 if __name__ == "__main__":
@@ -177,7 +168,7 @@ if __name__ == "__main__":
 
     for opt, arg in opts:
         if opt == '-l':
-            if arg == "all" or arg in supported_languages:
+            if arg in supported_languages:
                 language = arg
             else:
                 print('language not supported - supported languages are ',
